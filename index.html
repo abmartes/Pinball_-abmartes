@@ -1,7 +1,24 @@
 <!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Friday the 13th — Crystal Lake Pinball</title>
+<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><title>Friday the 13th — Crystal Lake Pinball</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#050609;color:#f6f3e9;font-family:system-ui,Arial,sans-serif}body{display:flex;align-items:center;justify-content:center;padding:14px;background:radial-gradient(ellipse at center,#18202b 0,#050609 72%)}.layout{width:min(96vw,520px);display:flex;flex-direction:column;align-items:center;gap:10px}.top{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border:1px solid #3c4655;border-radius:9px;background:#10141c;box-shadow:0 0 18px #0a3b8a55}.brand{font-size:clamp(12px,2.8vw,17px);font-weight:900;color:#ff333b;letter-spacing:.08em;text-shadow:0 0 9px #ff001d}.stat{font-size:12px;color:#d9e5ff}.stat strong{color:#fff;font-size:16px;margin-left:4px}canvas{width:min(92vw,440px);height:auto;aspect-ratio:843/1263;display:block;border:3px solid #272b32;border-radius:8px;box-shadow:0 0 28px #ed102a33,0 0 70px #005bff18;touch-action:none;background:#000}.controls{width:100%;display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap}.btn{min-width:84px;padding:12px 16px;border:1px solid #7b91af;border-radius:8px;background:linear-gradient(#202c3e,#0d1420);color:white;font-weight:800;box-shadow:inset 0 0 12px #347fff22,0 3px 0 #05070b;user-select:none;touch-action:manipulation}.btn:active,.btn.down{transform:translateY(2px);box-shadow:inset 0 0 18px #ff203f66,0 1px 0 #05070b;border-color:#ff354d}.launch{border-color:#e8b44c;color:#ffe39a}.help{font-size:11px;text-align:center;color:#aeb8c8;line-height:1.5}.overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#02040ad9;padding:20px}.overlay.show{display:flex}.dialog{width:min(90vw,360px);text-align:center;background:#10151f;border:1px solid #d22b3c;border-radius:14px;padding:24px;box-shadow:0 0 35px #f0143a33}.dialog h2{color:#ff3947;margin:0 0 8px}.dialog p{color:#d4d8e0;font-size:14px}.dialog button{padding:11px 22px;border-radius:7px;background:#c51d30;color:white;border:0;font-weight:900}
+
+/* Ajustes para celulares: controles sempre visíveis e área de jogo compacta. */
+@media (max-width: 600px){
+ html,body{width:100%;min-height:100%;overflow-x:hidden}
+ body{display:block;padding:6px 6px 112px;background:#050609}
+ .layout{width:100%;max-width:520px;margin:0 auto;gap:6px}
+ .top{padding:6px 8px;gap:4px}
+ .brand{font-size:11px;letter-spacing:.04em}
+ .brand span{font-size:8px!important}
+ .stat{font-size:10px;white-space:nowrap}.stat strong{font-size:14px;margin-left:2px}
+ canvas{width:min(76vw,300px);max-width:100%;height:auto;max-height:calc(100dvh - 185px);border-width:2px;box-shadow:0 0 10px #ed102a22;}
+ .controls{position:fixed;z-index:30;left:50%;bottom:calc(5px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(96vw,420px);display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:7px;border:1px solid #303b4b;border-radius:12px;background:rgba(5,8,14,.96);box-shadow:0 0 18px #000;}
+ .btn{width:100%;min-width:0;padding:12px 5px;font-size:13px;white-space:nowrap;box-shadow:inset 0 0 5px #347fff16,0 2px 0 #05070b}
+ .help{display:none}
+ .overlay{z-index:50}
+}
+@media (max-width:360px){.btn{font-size:12px;padding:11px 3px}.top{padding:5px 6px}}
 </style></head><body><main class="layout"><div class="top"><div class="brand">FRIDAY THE 13TH<br><span style="font-size:10px;color:#9db8ff;letter-spacing:.18em">CRYSTAL LAKE PINBALL</span></div><div class="stat">PONTOS<strong id="score">000000</strong></div><div class="stat">BOLAS<strong id="balls">3</strong></div></div><canvas id="game" width="843" height="1263" aria-label="Jogo de pinball Crystal Lake"></canvas><div class="controls"><button class="btn" id="left">◀ FLIPPER</button><button class="btn launch" id="launch">⏵ LANÇAR</button><button class="btn" id="right">FLIPPER ▶</button><button class="btn" id="soundToggle" aria-pressed="false">🔇 SOM: OFF</button></div><div class="help">Teclas: ← / A e → / D para os flippers · ESPAÇO ou ↓ para lançar a bola<br>Toque nos botões no celular. Acerte os alvos iluminados para somar pontos.</div></main>
 <div class="overlay" id="overlay"><div class="dialog"><h2 id="endTitle">GAME OVER</h2><p id="endText">A noite em Crystal Lake ainda não terminou...</p><button id="restart">JOGAR NOVAMENTE</button></div></div>
 <script>
@@ -133,10 +150,11 @@ function update(){
  if(ball.y>H+ball.r+8){sfx('drain');balls--;updateHud();if(balls<=0){gameOver=true;document.getElementById('endTitle').textContent='GAME OVER';document.getElementById('endText').textContent='Pontuação final: '+score+' — Crystal Lake espera por você.';document.getElementById('overlay').classList.add('show');}else newBall();}
 }
 let flash=0;
-function glow(x,y,r,color,intensity=1){ctx.save();ctx.globalCompositeOperation='lighter';ctx.shadowColor=color;ctx.shadowBlur=18*intensity;ctx.fillStyle=color;ctx.globalAlpha=.45;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.95;ctx.shadowBlur=6;ctx.beginPath();ctx.arc(x,y,r*.48,0,Math.PI*2);ctx.fill();ctx.restore();}
+const mobileMode=window.matchMedia('(max-width: 600px)').matches;
+function glow(x,y,r,color,intensity=1){ctx.save();ctx.globalCompositeOperation='lighter';ctx.shadowColor=color;ctx.shadowBlur=(mobileMode?4:18)*intensity;ctx.fillStyle=color;ctx.globalAlpha=mobileMode?.30:.45;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.9;ctx.shadowBlur=mobileMode?0:6;ctx.beginPath();ctx.arc(x,y,r*.48,0,Math.PI*2);ctx.fill();ctx.restore();}
 function draw(){ctx.clearRect(0,0,W,H);if(img.complete&&img.naturalWidth)ctx.drawImage(img,0,0,W,H);else{ctx.fillStyle='#071321';ctx.fillRect(0,0,W,H);}
 // animated electronic lamps around the cabinet
-let time=performance.now()/180;for(let i=0;i<32;i++){let y=.09+i*.026,x=(i%2===0?.075:.925),c=(Math.floor(time+i)%4===0)?'#f8d24e':(i%3===0?'#268cff':'#ff203b');glow(px(x),py(y),8,c,.8);}
+let time=performance.now()/(mobileMode?300:180);for(let i=0;i<(mobileMode?14:32);i++){let y=.09+i*.026,x=(i%2===0?.075:.925),c=(Math.floor(time+i)%4===0)?'#f8d24e':(i%3===0?'#268cff':'#ff203b');glow(px(x),py(y),8,c,.8);}
 // illuminated bumper rings
 bumpers.forEach((b,i)=>{let x=px(b.x),y=py(b.y),r=px(b.r);glow(x,y,r*.8,i===1?'#ff263f':'#ff332b',1);ctx.strokeStyle='#f7c5a1';ctx.lineWidth=4;ctx.beginPath();ctx.arc(x,y,r*.72,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#4a1118';ctx.beginPath();ctx.arc(x,y,r*.56,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f5d8bf';ctx.font='bold '+Math.round(r*.75)+'px Arial';ctx.textAlign='center';ctx.fillText('▲',x,y+r*.25);});
 // lit target triangles
@@ -159,7 +177,7 @@ if(ball){if(!ball.launched){ball.x=px(.885);ball.y=py(.86);}ctx.save();ctx.shado
 if(!playing&&!gameOver){ctx.save();ctx.fillStyle='#fff5bb';ctx.font='bold 21px Arial';ctx.textAlign='center';ctx.shadowColor='#ffcb36';ctx.shadowBlur=12;ctx.fillText('PRESSIONE LANÇAR',W*.5,H*.945);ctx.restore();}
 if(flash>0){ctx.fillStyle='rgba(255,30,50,'+(flash/80)+')';ctx.fillRect(0,0,W,H);flash--;}
 }
-function loop(){update();draw();requestAnimationFrame(loop)}
+let lastDrawTime=0;function loop(timestamp=0){update();const drawInterval=mobileMode?33:0;if(!drawInterval||timestamp-lastDrawTime>=drawInterval){draw();lastDrawTime=timestamp;}requestAnimationFrame(loop)}
 function setPress(side,on){pressed[side]=on;document.getElementById(side).classList.toggle('down',on)}
 for(const side of ['left','right']){let el=document.getElementById(side);el.addEventListener('pointerdown',e=>{e.preventDefault();if(!pressed[side])sfx('flipper');setPress(side,true)});['pointerup','pointerleave','pointercancel'].forEach(ev=>el.addEventListener(ev,()=>setPress(side,false)));}
 document.getElementById('soundToggle').addEventListener('click',toggleSound);
